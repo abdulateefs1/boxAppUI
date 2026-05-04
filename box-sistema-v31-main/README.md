@@ -35,10 +35,13 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 
 ### 2. Web Service yaratish
 1. **New** → **Web Service** → GitHub'dan repo tanlang
-2. Sozlamalar:
-   - **Build Command**: `npm install && npm run build` (`build` ichida `web` o‘rnatiladi va Next.js eksport bilan `web/out` yig‘iladi)
+2. **Monorepo** (`boxAppUI` → `box-sistema-v31-main/`): **Settings → Root Directory** = `box-sistema-v31-main` (bo‘lmasa `web/out` yig‘ilmaydi va splash sahifa chiqadi).
+3. Sozlamalar:
+   - **Build Command**: `npm install && npm run build` (`build` ichida `web` o‘rnatiladi va Next.js eksport bilan `web/out` yig‘iladi). **Faqat `npm install` yetarli emas.**
    - **Start Command**: `node server.js`
    - **Node Version**: 18+ (avtomatik)
+
+**Blueprint:** repo ildizida `render.yaml` — `rootDir: box-sistema-v31-main` va yuqoridagi `buildCommand` bilan.
 
 ### 3. Environment Variables
 | O'zgaruvchi | Qiymat |

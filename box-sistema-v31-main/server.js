@@ -986,8 +986,12 @@ function attachFrontendRoutes() {
   const mode = process.env.FRONTEND_MODE || '';
 
   const useProxy = mode === 'proxy';
-  const useExport =
-    mode === 'export' || (mode !== 'splash' && mode !== 'proxy' && IS_PROD && hasExport);
+  // web/out mavjud bo'lsa NODE_ENV tekshirmasdan UI beramiz (Render'da NODE_ENV ba'zan noto‘g‘ri bo‘lishi mumkin)
+  const useExportBundle =
+    hasExport &&
+    mode !== 'proxy' &&
+    mode !== 'splash' &&
+    (mode === 'export' || mode === '' || mode === 'auto');
 
   if (useProxy) {
     try {
@@ -1009,7 +1013,7 @@ function attachFrontendRoutes() {
     return;
   }
 
-  if (useExport && hasExport) {
+  if (useExportBundle) {
     app.use(express.static(webOutDir, { maxAge: IS_PROD ? '7d' : 0 }));
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });

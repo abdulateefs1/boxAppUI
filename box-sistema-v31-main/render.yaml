@@ -1,16 +1,18 @@
+# Agar Render servisining "Root Directory" allaqachon box-sistema-v31-main bo'lsa —
+# blueprint shu papkadan o'qiladi; aks holda repo ildizidagi ../render.yaml ishlating.
 services:
   - type: web
     name: box-sistema
-    env: node
+    runtime: node
     plan: starter
     region: frankfurt
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: node server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
-      - key: ALLOWED_ORIGINS
+      - key: ALLOWED_ORIGIN
         value: https://app.andbillur.com
       - key: DATABASE_URL
         fromDatabase:

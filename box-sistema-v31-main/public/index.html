@@ -23,6 +23,11 @@
       API bu serverda: port <code id="port">3000</code>. Eski sahifa olib tashlangan.
       Loyihani to‘liq ishlatish uchun quyidagi usullardan birini tanlang.
     </p>
+    <p style="background:#422006;color:#fcd34d;padding:12px 14px;border-radius:8px;font-size:0.9rem;">
+      <strong>Production (Render):</strong> agar shu xabarni <code>app.andbillur.com</code> da ko‘rsangiz —
+      <strong>Build Command</strong> da <code>npm install &amp;&amp; npm run build</code> bo‘lishi va
+      <strong>Root Directory</strong> <code>box-sistema-v31-main</code> (monorepo) kerak. Keyin qayta deploy.
+    </p>
     <ol>
       <li><strong>Bir port (tavsiya, dev):</strong> loyiha ildizida <code>npm run dev:stack</code> — brauzerda <a href="http://localhost:3000">localhost:3000</a></li>
       <li><strong>Ikki terminal:</strong> <code>npm run dev:api</code> + alohida <code>npm run dev:web</code> — UI: <a href="http://localhost:3001">localhost:3001</a></li>
