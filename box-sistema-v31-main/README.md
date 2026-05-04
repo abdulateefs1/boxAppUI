@@ -70,7 +70,7 @@ Dashboarddagi Build Command blueprintdan **ustun** turadi — eski buyruq qolsa,
 |-------------|--------|
 | `DATABASE_URL` | PostgreSQL Internal URL |
 | `NODE_ENV` | `production` |
-| `ALLOWED_ORIGIN` | `https://app.andbillur.com` |
+| `ALLOWED_ORIGIN` | `https://app.andbillur.com` (bir nechta: vergul bilan) |
 | `PORT` | `3000` (Render avtomatik beradi) |
 | `NODE_VERSION` | `20.18.1` (tavsiya) |
 
@@ -81,6 +81,17 @@ Paketlar: **npm** (`frontend/pnpm-lock.yaml` olib tashlangan — CI aralasha pnp
 2. `app.andbillur.com` qo'shing
 3. DNS sozlash (CNAME yoki A yozuv): Render ko'rsatadigan qiymat
 4. SSL avtomatik tarqatiladi (Let's Encrypt)
+
+### Split deploy (UI alohida + API alohida)
+
+Agar **frontend** masalan `https://app.andbillur.com`, **API** esa `https://boxapp-ww9m.onrender.com` bo‘lsa:
+
+1. **Frontendni qayta build** qiling (`STATIC_EXPORT=1`) — build oldidan:
+   - `NEXT_PUBLIC_API_BASE_URL=https://boxapp-ww9m.onrender.com`  
+   (sizning backend URL; **oxirida `/` qo‘ymang**.)
+2. Backend (API) servisida **`ALLOWED_ORIGIN=https://app.andbillur.com`** (aniq shu, `https://` bilan).
+3. Brauzer **Network** → login so‘rovi **`boxapp-...onrender.com/api/login`** ga ketyaptimi yoki **`app.andbillur.com/api/...`** ga? Agar ikkinchisi bo‘lsa — `NEXT_PUBLIC_API_BASE_URL` buildga kirmagan.
+4. **`/api/login` 500** — odatda PostgreSQL: API servisida **`DATABASE_URL`** ulanganini va Render **Logs** dagi `Login error:` qatorini tekshiring.
 
 ### 5. Birinchi kirish
 - URL: `https://app.andbillur.com`

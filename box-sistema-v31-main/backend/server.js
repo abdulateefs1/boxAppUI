@@ -10,7 +10,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const IS_PROD = NODE_ENV === 'production';
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://app.andbillur.com';
+// Vergul bilan bir nechta frontend (masalan: custom domain + Render preview)
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGIN || 'https://app.andbillur.com')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const UNDO_WINDOW_MS = 2 * 60 * 1000;
@@ -130,31 +134,32 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   if (IS_PROD) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    // CSP — bizning sahifa o'zining JS/CSS'ini yuklaydi, tashqi resurs yo'q
-    res.setHeader('Content-Security-Policy',
-      "default-src 'self'; " +
-      "script-src 'self'; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "img-src 'self' data:; " +
-      "font-src 'self' data:; " +
-      "connect-src 'self'; " +
-      "frame-ancestors 'none'; " +
-      "base-uri 'self'; " +
-      "form-action 'self'"
-    );
+    // CSP faqat HTML/statik uchun ma'noli; JSON API javoblariga qo'yilganda ba'zi cross-origin clientlar chalkashadi
+    if (!req.path.startsWith('/api')) {
+      res.setHeader('Content-Security-Policy',
+        "default-src 'self'; " +
+        "script-src 'self'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; " +
+        "font-src 'self' data:; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'"
+      );
+    }
   }
   next();
 });
 
-// CORS — production'da faqat o'z domenimiz
+// CORS — production'da ro'yxatdagi frontend domenlari
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (IS_PROD) {
-    if (origin === ALLOWED_ORIGIN) {
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
       res.header('Access-Control-Allow-Origin', origin);
       res.header('Access-Control-Allow-Credentials', 'true');
     }
-    // Boshqa origin'lar — header qo'shmaymiz, browser bloklaydi
   } else {
     // Dev'da hamma origin'ga ruxsat
     res.header('Access-Control-Allow-Origin', origin || '*');
@@ -1059,7 +1064,7 @@ app.use((err, req, res, next) => {
       console.log('  AND BILLUR TEXTILE Box Sistema v3');
       console.log('  Env:    ' + NODE_ENV);
       console.log('  Port:   ' + PORT);
-      console.log('  Origin: ' + (IS_PROD ? ALLOWED_ORIGIN : 'any'));
+      console.log('  Origin: ' + (IS_PROD ? ALLOWED_ORIGINS.join(', ') : 'any'));
       console.log('  Default: admin / admin123');
       console.log('====================================');
     });
