@@ -3,6 +3,9 @@
   "version": "3.0.0",
   "description": "AND BILLUR TEXTILE — monorepo (backend + frontend)",
   "private": true,
+  "engines": {
+    "node": ">=20 <24"
+  },
   "scripts": {
     "start": "node backend/server.js",
     "dev": "node backend/server.js",

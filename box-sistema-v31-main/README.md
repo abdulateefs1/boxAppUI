@@ -59,11 +59,11 @@ box-sistema-v31-main/
 1. **New** → **Web Service** → GitHub'dan repo tanlang
 2. **Monorepo** (`boxAppUI` → `box-sistema-v31-main/`): **Settings → Root Directory** = `box-sistema-v31-main` (bo‘lmasa `frontend/out` yig‘ilmaydi va splash chiqadi).
 3. Sozlamalar:
-   - **Build Command**: `npm install --prefix backend && npm run build --prefix backend` (frontend o‘rnatiladi + Next statik eksport `frontend/out`). **Faqat `npm install` yetarli emas.**
+   - **Build Command** (qat’iy): `npm install --prefix backend && npm run build --prefix backend` (`npm install && npm run build` — noto‘g‘ri; root `package.json` xato kombinatsiyada NPM xatolari berishi mumkin).
    - **Start Command**: `node backend/server.js`
-   - **Node Version**: 18+ (avtomatik)
+   - **Node:** `NODE_VERSION` = `20.18.1` yoki `.nvmrc` (`20`) — Render default Node 24 ba’zan npm bilan muammo qiladi.
 
-**Blueprint:** repo ildizida `render.yaml` — `rootDir: box-sistema-v31-main` va yuqoridagi `buildCommand` bilan.
+Dashboarddagi Build Command blueprintdan **ustun** turadi — eski buyruq qolsa, Render’da **qo‘lda yangilang** yoki “Apply Blueprint”.
 
 ### 3. Environment Variables
 | O'zgaruvchi | Qiymat |
@@ -72,6 +72,9 @@ box-sistema-v31-main/
 | `NODE_ENV` | `production` |
 | `ALLOWED_ORIGIN` | `https://app.andbillur.com` |
 | `PORT` | `3000` (Render avtomatik beradi) |
+| `NODE_VERSION` | `20.18.1` (tavsiya) |
+
+Paketlar: **npm** (`frontend/pnpm-lock.yaml` olib tashlangan — CI aralasha pnpm/npm ishlatmasin).
 
 ### 4. Custom Domain
 1. Web Service → **Settings** → **Custom Domains**

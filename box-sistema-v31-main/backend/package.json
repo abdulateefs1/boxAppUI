@@ -4,7 +4,7 @@
   "description": "AND BILLUR TEXTILE — Express API",
   "main": "server.js",
   "engines": {
-    "node": ">=18"
+    "node": ">=20 <24"
   },
   "scripts": {
     "start": "node server.js",
