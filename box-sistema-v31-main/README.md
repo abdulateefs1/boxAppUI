@@ -6,7 +6,7 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 
 - 📲 **Barcode skanerlash** — order avtomatik topiladi
 - 📦 **Box numbering** — har zakaz ichida 01-50 raqamlash (zakaz orasida takrorlanishi mumkin: `600/01` va `601/01` alohida)
-- 🎨 **Mix box** — 2 ta barcode skanerlanadi, har model uchun alohida razmer
+- 🎨 **Mix box** — bir nechta model (2+), har model uchun alohida razmer
 - 🚛 **Shipment** — open/close oqim, transactional
 - 📋 **Detalniy hisobot** — Excel formatida eksport
 - 🏆 **Bugungi reyting** — ishchilar bo'yicha
@@ -19,7 +19,7 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 - **Rate limit** — 15 daqiqada 10 noto'g'ri urinishdan keyin IP ban
 - **CSP, HSTS, X-Frame-Options** headerlari
 - **HttpOnly + Secure + SameSite=Strict** cookielar (production)
-- **CORS allowlist** — faqat `ALLOWED_ORIGINS` env'dagi domenlar
+- **CORS allowlist** — production'da faqat `ALLOWED_ORIGIN` dagi domen (`https://…`)
 - Avtomatik **HTTP→HTTPS** redirect production'da
 - **Eski SHA-256 → scrypt** avtomatik migratsiya
 - Parol o'zgartirilganda **boshqa sessionlar yopiladi**
@@ -36,7 +36,7 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 ### 2. Web Service yaratish
 1. **New** → **Web Service** → GitHub'dan repo tanlang
 2. Sozlamalar:
-   - **Build Command**: `npm install`
+   - **Build Command**: `npm install && npm run build` (`build` ichida `web` o‘rnatiladi va Next.js eksport bilan `web/out` yig‘iladi)
    - **Start Command**: `node server.js`
    - **Node Version**: 18+ (avtomatik)
 
@@ -45,7 +45,7 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 |-------------|--------|
 | `DATABASE_URL` | PostgreSQL Internal URL |
 | `NODE_ENV` | `production` |
-| `ALLOWED_ORIGINS` | `https://app.andbillur.com` |
+| `ALLOWED_ORIGIN` | `https://app.andbillur.com` |
 | `PORT` | `3000` (Render avtomatik beradi) |
 
 ### 4. Custom Domain
@@ -62,19 +62,32 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 
 ## 💻 Lokal ishga tushirish
 
+Frontend — **Next.js** (`web/`); API — **Express** (`server.js`). Odatda ikki yo‘l:
+
+**Bitta port (tavsiya):** API + proxy orqali Next dev
+
 ```bash
-# PostgreSQL ulanish
 export DATABASE_URL=postgres://user:pass@localhost:5432/boxapp
 export NODE_ENV=development
-
-# Paketlarni o'rnatish
 npm install
-
-# Serverni boshlash
-node server.js
+npm run dev:stack
 ```
 
-Browser: http://localhost:3000
+Brauzer: **http://localhost:3000** (`FRONTEND_MODE=proxy`, Next SSR `3001` orqasi).
+
+**Ikki terminal:** faqat API yoki FAQAT UI test
+
+```bash
+npm install && npm run install:web
+# Terminal 1
+node server.js
+# Terminal 2
+npm run dev:web   # Next http://localhost:3001 — /api uchun API_TARGET Express 3000
+```
+
+Production build (bitta jarayonda): `npm run build:web`, keyin `NODE_ENV=production node server.js` — Express `web/out` papkasidagi statik UI + `/api`.
+
+`web/.env.example` ichida API_TARGET va boshqa o‘zgaruvchilar.
 
 ## 🗄 Database schema
 

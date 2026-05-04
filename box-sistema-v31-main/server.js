@@ -2,6 +2,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const path = require('path');
+const fs = require('fs');
 const ExcelJS = require('exceljs');
 const { pool, initDB, hashPassword, verifyPassword, isLegacyHash } = require('./db');
 
@@ -164,8 +165,6 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
-
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: IS_PROD ? '7d' : 0 }));
 
 async function requireAuth(req, res, next) {
   const user = await getSession(req);
@@ -975,28 +974,70 @@ app.get('/api/audit-logs', requireRole('admin'), async (req, res) => {
 });
 
 
-// ============== DEBUG ==============
-app.get('/debug/users', async (req, res) => {
-  try {
-      const result = await pool.query('SELECT * FROM users');
-          res.json(result.rows);
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-                  }
-                  });
-                  
-
 // ============== HEALTH ==============
 app.get('/health', async (req, res) => {
   try { await pool.query('SELECT 1'); res.json({ ok: true, env: NODE_ENV }); }
   catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-// SPA fallback
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+function attachFrontendRoutes() {
+  const webOutDir = path.join(__dirname, 'web', 'out');
+  const hasExport = fs.existsSync(path.join(webOutDir, 'index.html'));
+  const mode = process.env.FRONTEND_MODE || '';
+
+  const useProxy = mode === 'proxy';
+  const useExport =
+    mode === 'export' || (mode !== 'splash' && mode !== 'proxy' && IS_PROD && hasExport);
+
+  if (useProxy) {
+    try {
+      const { createProxyMiddleware } = require('http-proxy-middleware');
+      const target = process.env.FRONTEND_PROXY_TARGET || 'http://127.0.0.1:3001';
+      app.use(
+        createProxyMiddleware({
+          target,
+          changeOrigin: true,
+          ws: true,
+          pathFilter: (pathname) => pathname !== '/health' && !pathname.startsWith('/api'),
+        })
+      );
+      console.log('[frontend] FRONTEND_MODE=proxy → ' + target);
+    } catch (e) {
+      console.warn('[frontend] http-proxy-middleware topilmadi, splash rejimi. npm install qiling:', e.message);
+      mountSplashOrPublicFallback();
+    }
+    return;
+  }
+
+  if (useExport && hasExport) {
+    app.use(express.static(webOutDir, { maxAge: IS_PROD ? '7d' : 0 }));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
+      res.sendFile(path.join(webOutDir, 'index.html'));
+    });
+    console.log('[frontend] Next.js static export: ' + webOutDir);
+    return;
+  }
+
+  if (IS_PROD && !hasExport && mode !== 'proxy' && mode !== 'splash') {
+    console.warn(
+      '[frontend] PRODUCTION: web/out mavjud emas. `npm run build:web` yoki FRONTEND_MODE=proxy bilan Next ishga tushiring.'
+    );
+  }
+  mountSplashOrPublicFallback();
+}
+
+function mountSplashOrPublicFallback() {
+  const publicDir = path.join(__dirname, 'public');
+  app.use(express.static(publicDir, { maxAge: IS_PROD ? '7d' : 0 }));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' });
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+  console.log('[frontend] public/ (splash rejimi)');
+}
+
+attachFrontendRoutes();
 
 // Error handler
 app.use((err, req, res, next) => {

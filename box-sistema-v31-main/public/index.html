@@ -1,299 +1,37 @@
 <!DOCTYPE html>
 <html lang="uz">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
-<title>AND BILLUR TEXTILE — Box Sistema</title>
-<link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Box Sistema — Frontend</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { max-width: 520px; background: #1e293b; border-radius: 12px; padding: 28px; border: 1px solid #334155; }
+    h1 { margin: 0 0 12px; font-size: 1.25rem; }
+    p { margin: 0 0 16px; line-height: 1.5; color: #94a3b8; font-size: 0.95rem; }
+    code { background: #0f172a; padding: 2px 8px; border-radius: 6px; font-size: 0.85rem; }
+    a { color: #34d399; }
+    ol { margin: 16px 0 0; padding-left: 22px; color: #94a3b8; line-height: 1.7; }
+    .api { margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155; font-size: 0.85rem; color: #64748b; }
+  </style>
 </head>
 <body>
-
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-brand">
-      <img src="/logo.jpg" class="login-logo" alt="logo">
-      <div>
-        <div class="login-brand-name">AND BILLUR TEXTILE</div>
-        <div class="login-brand-sub">BOX MANAGEMENT SYSTEM</div>
-      </div>
-    </div>
-    <div class="login-divider"></div>
-    <div class="login-title">Tizimga kirish</div>
-    <div class="error-msg" id="login-error"></div>
-    <div class="form-group">
-      <label>Login</label>
-      <input type="text" id="inp-user" placeholder="admin" autocomplete="username">
-    </div>
-    <div class="form-group">
-      <label>Parol</label>
-      <input type="password" id="inp-pass" placeholder="••••••" autocomplete="current-password">
-    </div>
-    <button class="btn btn-primary btn-block" data-action="login">Kirish →</button>
+  <div class="card">
+    <h1>Next.js frontend ishlamoqda</h1>
+    <p>
+      API bu serverda: port <code id="port">3000</code>. Eski sahifa olib tashlangan.
+      Loyihani to‘liq ishlatish uchun quyidagi usullardan birini tanlang.
+    </p>
+    <ol>
+      <li><strong>Bir port (tavsiya, dev):</strong> loyiha ildizida <code>npm run dev:stack</code> — brauzerda <a href="http://localhost:3000">localhost:3000</a></li>
+      <li><strong>Ikki terminal:</strong> <code>npm run dev:api</code> + alohida <code>npm run dev:web</code> — UI: <a href="http://localhost:3001">localhost:3001</a></li>
+      <li><strong>Production build:</strong> <code>npm run build:web</code> keyin <code>NODE_ENV=production node server.js</code> — bitta portda API + UI (<code>web/out</code>)</li>
+    </ol>
+    <p class="api">Health: <a href="/health">/health</a></p>
   </div>
-</div>
-
-<!-- APP -->
-<div id="app" style="display:none">
-  <aside id="sidebar">
-    <div id="sb-brand">
-      <img src="/logo.jpg" alt="logo">
-      <div class="sb-brand-meta">
-        <div class="sb-name">AND BILLUR</div>
-        <div class="sb-sub">BOX SISTEMA</div>
-      </div>
-    </div>
-    <nav id="sb-nav"></nav>
-    <div id="sb-footer">
-      <div class="sb-user">
-        <div class="sb-av" id="sb-av">A</div>
-        <div>
-          <div class="sb-uname" id="sb-uname">Admin</div>
-          <div class="sb-urole" id="sb-urole">Admin</div>
-        </div>
-      </div>
-      <button class="btn-logout" data-action="logout">
-        <span class="btn-logout-icon">↩</span>
-        <span>Chiqish</span>
-      </button>
-    </div>
-  </aside>
-
-  <main id="main-content">
-    <div id="topbar">
-      <div class="topbar-left">
-        <button id="hamburger" data-action="toggle-sidebar">☰</button>
-        <div class="topbar-title" id="tb-title">Bosh sahifa</div>
-      </div>
-      <div class="topbar-right">
-        <span id="tb-user"></span>
-        <span class="topbar-sep">|</span>
-        <span id="tb-date"></span>
-      </div>
-    </div>
-    <div id="content-area"><div id="page-content"></div></div>
-  </main>
-</div>
-
-<!-- TOAST -->
-<div id="toast"></div>
-
-<!-- ===== MODALS ===== -->
-
-<!-- Box turi tanlash -->
-<div class="modal-overlay" id="m-type">
-  <div class="modal-box">
-    <div class="modal-title">Box turini tanlang</div>
-    <div class="modal-sub">Order: <strong id="m-type-bc"></strong></div>
-    <button class="btn btn-primary btn-block" data-action="choose-simple">📦 Oddiy box (1 model)</button>
-    <button class="btn btn-amber btn-block" data-action="choose-mix">🎨 Mix box (2 model)</button>
-    <button class="btn btn-ghost btn-block" data-action="close-modals">Bekor qilish</button>
-  </div>
-</div>
-
-<!-- Oddiy box -->
-<div class="modal-overlay" id="m-simple">
-  <div class="modal-box">
-    <div class="modal-title">Oddiy box</div>
-    <div class="modal-sub" id="m-s-lbl"></div>
-    <div class="row2">
-      <div class="form-group">
-        <label>Box № (01-50)</label>
-        <input type="text" id="s-boxnum" placeholder="01" inputmode="numeric">
-      </div>
-      <div class="form-group">
-        <label>Zakaz</label>
-        <input type="text" id="s-zakaz" placeholder="600">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Og'irlik (kg) *</label>
-      <input type="number" id="s-kg" placeholder="12.5" step="0.1" inputmode="decimal">
-    </div>
-    <div class="section-divider">📐 Razmerlar</div>
-    <div id="s-sizes" class="sizes-grid"></div>
-    <div class="total-row">
-      <span>Jami:</span>
-      <span class="total-val" id="s-total">0 dona</span>
-    </div>
-    <button class="btn btn-primary btn-block" data-action="save-simple">✓ Saqlash</button>
-    <button class="btn btn-ghost btn-block" data-action="close-modals">Bekor</button>
-  </div>
-</div>
-
-<!-- Mix STEP 1 -->
-<div class="modal-overlay" id="m-mix-scan1">
-  <div class="modal-box">
-    <div class="modal-title">Mix Box — 1-model</div>
-    <div class="modal-sub">Birinchi modelning barcodeini skanerlang</div>
-    <div class="scan-box">
-      <div class="scan-icon">📲</div>
-      <input type="text" id="mix-bc1" class="bc-input-modal" placeholder="Barcode..." autocomplete="off" data-enter="mix-scan1-done">
-      <div class="scan-hint">1-modelni skanerlang yoki yozib Enter bosing</div>
-    </div>
-    <div id="mix-scan1-result" class="scan-result"></div>
-    <button class="btn btn-primary btn-block" data-action="mix-scan1-done">Davom →</button>
-    <button class="btn btn-ghost btn-block" data-action="close-modals">Bekor</button>
-  </div>
-</div>
-
-<!-- Mix STEP 2 -->
-<div class="modal-overlay" id="m-mix-scan2">
-  <div class="modal-box">
-    <div class="modal-title">Mix Box — 2-model</div>
-    <div class="modal-sub">Ikkinchi modelning barcodeini skanerlang</div>
-    <div class="scan-box">
-      <div class="scan-icon">📲</div>
-      <input type="text" id="mix-bc2" class="bc-input-modal" placeholder="Barcode..." autocomplete="off" data-enter="mix-scan2-done">
-      <div class="scan-hint">2-modelni skanerlang yoki yozib Enter bosing</div>
-    </div>
-    <div id="mix-scan2-result" class="scan-result"></div>
-    <button class="btn btn-primary btn-block" data-action="mix-scan2-done">Davom →</button>
-    <button class="btn btn-ghost btn-block" data-action="mix-back1">← Orqaga</button>
-  </div>
-</div>
-
-<!-- Mix STEP 3 -->
-<div class="modal-overlay" id="m-mix-sizes">
-  <div class="modal-box">
-    <div class="modal-title">Mix Box — razmerlar</div>
-    <div class="row2">
-      <div class="form-group">
-        <label>Box № (01-50)</label>
-        <input type="text" id="mx-boxnum" placeholder="01" inputmode="numeric">
-      </div>
-      <div class="form-group">
-        <label>Zakaz</label>
-        <input type="text" id="mx-zakaz" placeholder="600">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Og'irlik (kg) *</label>
-      <input type="number" id="mx-kg" placeholder="14.0" step="0.1" inputmode="decimal">
-    </div>
-    <div id="mx-sizes-cont"></div>
-    <div class="total-row">
-      <span>Jami:</span>
-      <span class="total-val" id="mx-total">0 dona</span>
-    </div>
-    <button class="btn btn-primary btn-block" data-action="save-mix">✓ Saqlash</button>
-    <button class="btn btn-ghost btn-block" data-action="close-modals">Bekor</button>
-  </div>
-</div>
-
-<!-- Box tahrirlash -->
-<div class="modal-overlay" id="m-box-edit">
-  <div class="modal-box">
-    <div class="modal-title">Boxni tahrirlash</div>
-    <input type="hidden" id="be-uid">
-    <div class="row2">
-      <div class="form-group">
-        <label>Box №</label>
-        <input type="text" id="be-boxnum" readonly>
-      </div>
-      <div class="form-group">
-        <label>Zakaz</label>
-        <input type="text" id="be-zakaz" placeholder="600">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Og'irlik (kg)</label>
-      <input type="number" id="be-kg" step="0.1" inputmode="decimal">
-    </div>
-    <div id="be-model-lbl" class="section-divider"></div>
-    <div id="be-sizes" class="sizes-grid"></div>
-    <div class="total-row">
-      <span>Jami:</span>
-      <span class="total-val" id="be-total">0 dona</span>
-    </div>
-    <button class="btn btn-primary btn-block" data-action="save-box-edit">✓ Saqlash</button>
-    <button class="btn btn-ghost btn-block" data-action="close-modals">Bekor</button>
-  </div>
-</div>
-
-<!-- Order yaratish/tahrirlash -->
-<div class="modal-overlay" id="m-order-edit">
-  <div class="modal-box">
-    <div class="modal-title" id="m-oe-title">Yangi order</div>
-    <input type="hidden" id="edit-order-id">
-    <div class="form-group">
-      <label>📲 Barcode</label>
-      <input type="text" id="edit-barcode" placeholder="Barcode skanerlang yoki yozing">
-      <div class="hint">Barcode skanerda urilganda saxranit bo'ladi</div>
-    </div>
-    <div class="row2">
-      <div class="form-group">
-        <label>Model</label>
-        <input type="text" id="edit-model" placeholder="LRTT084">
-      </div>
-      <div class="form-group">
-        <label>Rang</label>
-        <input type="text" id="edit-color" placeholder="Black">
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Buyurtma miqdori</label>
-      <input type="number" id="edit-total" placeholder="1000" inputmode="numeric">
-    </div>
-    <div class="row2">
-      <button class="btn btn-primary" data-action="save-order">✓ Saqlash</button>
-      <button class="btn btn-ghost" data-action="close-modals">Bekor</button>
-    </div>
-  </div>
-</div>
-
-<!-- Foydalanuvchi -->
-<div class="modal-overlay" id="m-user">
-  <div class="modal-box">
-    <div class="modal-title" id="m-u-title">Foydalanuvchi</div>
-    <input type="hidden" id="edit-user-id">
-    <div class="form-group">
-      <label>Ism</label>
-      <input type="text" id="u-name" placeholder="Ism">
-    </div>
-    <div class="form-group">
-      <label>Login</label>
-      <input type="text" id="u-username" placeholder="login">
-    </div>
-    <div class="form-group">
-      <label>Parol</label>
-      <input type="password" id="u-password" placeholder="Parol">
-    </div>
-    <div class="form-group">
-      <label>Rol</label>
-      <select id="u-role">
-        <option value="worker">👷 Ishchi</option>
-        <option value="storekeeper">🏭 Omborchi</option>
-        <option value="admin">👑 Admin</option>
-      </select>
-    </div>
-    <div class="row2">
-      <button class="btn btn-primary" data-action="save-user">✓ Saqlash</button>
-      <button class="btn btn-ghost" data-action="close-modals">Bekor</button>
-    </div>
-  </div>
-</div>
-
-<!-- Tasdiq -->
-<div class="modal-overlay" id="m-confirm">
-  <div class="modal-box">
-    <div class="modal-title" id="m-confirm-title">Tasdiqlang</div>
-    <p class="modal-msg" id="m-confirm-msg"></p>
-    <div class="row2">
-      <button class="btn btn-danger" id="m-confirm-ok">Tasdiqlash</button>
-      <button class="btn btn-ghost" data-action="close-modals">Bekor</button>
-    </div>
-  </div>
-</div>
-
-<!-- Info -->
-<div class="modal-overlay" id="m-info">
-  <div class="modal-box">
-    <p class="modal-msg" id="m-info-txt"></p>
-    <button class="btn btn-primary btn-block" data-action="close-modals">OK</button>
-  </div>
-</div>
-
-<script src="/js/app.js"></script>
+  <script>
+    (function(){ var p=(location.port||'80'); var el=document.getElementById('port'); if(el) el.textContent=p; })();
+  </script>
 </body>
 </html>
