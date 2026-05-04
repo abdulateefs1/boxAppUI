@@ -1,0 +1,20 @@
+{
+  "name": "box-sistema",
+  "version": "3.0.0",
+  "description": "AND BILLUR TEXTILE — Warehouse and box management system",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "pg": "^8.11.5"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
