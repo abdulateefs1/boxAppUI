@@ -981,12 +981,12 @@ app.get('/health', async (req, res) => {
 });
 
 function attachFrontendRoutes() {
-  const webOutDir = path.join(__dirname, 'web', 'out');
+  const webOutDir = path.join(__dirname, '..', 'frontend', 'out');
   const hasExport = fs.existsSync(path.join(webOutDir, 'index.html'));
   const mode = process.env.FRONTEND_MODE || '';
 
   const useProxy = mode === 'proxy';
-  // web/out mavjud bo'lsa NODE_ENV tekshirmasdan UI beramiz (Render'da NODE_ENV ba'zan noto‘g‘ri bo‘lishi mumkin)
+  // frontend/out mavjud bo'lsa NODE_ENV tekshirmasdan UI beramiz (Render'da NODE_ENV ba'zan noto‘g‘ri bo‘lishi mumkin)
   const useExportBundle =
     hasExport &&
     mode !== 'proxy' &&
@@ -1025,7 +1025,7 @@ function attachFrontendRoutes() {
 
   if (IS_PROD && !hasExport && mode !== 'proxy' && mode !== 'splash') {
     console.warn(
-      '[frontend] PRODUCTION: web/out mavjud emas. `npm run build:web` yoki FRONTEND_MODE=proxy bilan Next ishga tushiring.'
+      '[frontend] PRODUCTION: frontend/out mavjud emas. `npm run build` (ildiz) yoki FRONTEND_MODE=proxy bilan Next ishga tushiring.'
     );
   }
   mountSplashOrPublicFallback();

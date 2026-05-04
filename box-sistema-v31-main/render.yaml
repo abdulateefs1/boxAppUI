@@ -1,13 +1,12 @@
-# Agar Render servisining "Root Directory" allaqachon box-sistema-v31-main bo'lsa —
-# blueprint shu papkadan o'qiladi; aks holda repo ildizidagi ../render.yaml ishlating.
+# Root Directory: box-sistema-v31-main (repo ildizidan)
 services:
   - type: web
     name: box-sistema
     runtime: node
     plan: starter
     region: frankfurt
-    buildCommand: npm install && npm run build
-    startCommand: node server.js
+    buildCommand: npm install --prefix backend && npm run build --prefix backend
+    startCommand: node backend/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

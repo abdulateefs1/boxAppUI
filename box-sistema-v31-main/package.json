@@ -1,31 +1,20 @@
 {
   "name": "box-sistema",
   "version": "3.0.0",
-  "description": "AND BILLUR TEXTILE — Warehouse and box management system",
-  "main": "server.js",
-  "engines": {
-    "node": ">=18"
-  },
+  "description": "AND BILLUR TEXTILE — monorepo (backend + frontend)",
+  "private": true,
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "dev:api": "node server.js",
-    "dev:web": "npm run dev --prefix web",
-    "dev:stack": "concurrently -n api,web -c blue,green \"cross-env NODE_ENV=development FRONTEND_MODE=proxy node server.js\" \"npm run dev --prefix web\"",
-    "install:web": "npm install --prefix web",
-    "build:web": "cross-env STATIC_EXPORT=1 npm run build --prefix web",
-    "build": "npm run install:web && npm run build:web"
-  },
-  "dependencies": {
-    "exceljs": "^4.4.0",
-    "express": "^4.19.2",
-    "http-proxy-middleware": "^3.0.5",
-    "pg": "^8.11.5"
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "dev:api": "node backend/server.js",
+    "dev:web": "npm run dev --prefix frontend",
+    "dev:stack": "concurrently -n api,web -c blue,green \"cross-env NODE_ENV=development FRONTEND_MODE=proxy node backend/server.js\" \"npm run dev --prefix frontend\"",
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "build": "npm install --prefix backend && npm run build --prefix backend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
     "cross-env": "^7.0.3"
   },
-  "license": "UNLICENSED",
-  "private": true
+  "license": "UNLICENSED"
 }

@@ -2,6 +2,28 @@
 
 Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-driven workflow.
 
+## Loyiha tuzilishi
+
+```
+box-sistema-v31-main/
+├── backend/                 ← Express API (PostgreSQL, /api, splash)
+│   ├── server.js
+│   ├── db.js
+│   ├── package.json
+│   └── public/
+├── frontend/                ← Next.js + Tailwind UI
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── package.json
+│   └── out/                   ← production build (STATIC_EXPORT=1)
+├── package.json             ← umumiy skriptlar (dev:stack, build)
+└── README.md
+```
+
+- **Backend** — `backend/`: `node backend/server.js` yoki ildizdan `npm start`.
+- **Frontend** — `frontend/`: `npm run dev:web` yoki `cd frontend && npm run dev`.
+
 ## 🚀 Asosiy xususiyatlar
 
 - 📲 **Barcode skanerlash** — order avtomatik topiladi
@@ -35,10 +57,10 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 
 ### 2. Web Service yaratish
 1. **New** → **Web Service** → GitHub'dan repo tanlang
-2. **Monorepo** (`boxAppUI` → `box-sistema-v31-main/`): **Settings → Root Directory** = `box-sistema-v31-main` (bo‘lmasa `web/out` yig‘ilmaydi va splash sahifa chiqadi).
+2. **Monorepo** (`boxAppUI` → `box-sistema-v31-main/`): **Settings → Root Directory** = `box-sistema-v31-main` (bo‘lmasa `frontend/out` yig‘ilmaydi va splash chiqadi).
 3. Sozlamalar:
-   - **Build Command**: `npm install && npm run build` (`build` ichida `web` o‘rnatiladi va Next.js eksport bilan `web/out` yig‘iladi). **Faqat `npm install` yetarli emas.**
-   - **Start Command**: `node server.js`
+   - **Build Command**: `npm install --prefix backend && npm run build --prefix backend` (frontend o‘rnatiladi + Next statik eksport `frontend/out`). **Faqat `npm install` yetarli emas.**
+   - **Start Command**: `node backend/server.js`
    - **Node Version**: 18+ (avtomatik)
 
 **Blueprint:** repo ildizida `render.yaml` — `rootDir: box-sistema-v31-main` va yuqoridagi `buildCommand` bilan.
@@ -65,32 +87,34 @@ Knit garment B2B uchun box management tizimi. PostgreSQL bazasi va barcode-drive
 
 ## 💻 Lokal ishga tushirish
 
-Frontend — **Next.js** (`web/`); API — **Express** (`server.js`). Odatda ikki yo‘l:
+Frontend — **Next.js** (`frontend/`); API — **Express** (`backend/server.js`). Odatda ikki yo‘l:
 
 **Bitta port (tavsiya):** API + proxy orqali Next dev
 
 ```bash
+cd box-sistema-v31-main
 export DATABASE_URL=postgres://user:pass@localhost:5432/boxapp
 export NODE_ENV=development
 npm install
 npm run dev:stack
 ```
 
-Brauzer: **http://localhost:3000** (`FRONTEND_MODE=proxy`, Next SSR `3001` orqasi).
+Brauzer: **http://localhost:3000** (`FRONTEND_MODE=proxy`, Next dev `3001` orqasi).
 
-**Ikki terminal:** faqat API yoki FAQAT UI test
+**Ikki terminal:** faqat API yoki faqat UI
 
 ```bash
-npm install && npm run install:web
+cd box-sistema-v31-main
+npm install
 # Terminal 1
-node server.js
+npm run dev:api
 # Terminal 2
-npm run dev:web   # Next http://localhost:3001 — /api uchun API_TARGET Express 3000
+npm run dev:web   # http://localhost:3001 — rewrites: API → Express :3000
 ```
 
-Production build (bitta jarayonda): `npm run build:web`, keyin `NODE_ENV=production node server.js` — Express `web/out` papkasidagi statik UI + `/api`.
+Production: `npm run build` (ildizda), keyin `NODE_ENV=production node backend/server.js` — `frontend/out` + `/api`.
 
-`web/.env.example` ichida API_TARGET va boshqa o‘zgaruvchilar.
+`frontend/.env.example` — `API_TARGET`, `NEXT_PUBLIC_API_BASE_URL`.
 
 ## 🗄 Database schema
 
@@ -128,7 +152,7 @@ packed (qadoqlandi) → warehouse (omborda) → shipping (shipmentda) → shippe
 - ✅ JSON fayl o'rniga **PostgreSQL**
 - ✅ Box raqami **zakaz ichida** unique (eski: global unique edi)
 - ✅ Order'da **barcode** maydoni qo'shildi
-- ✅ Mix box **2× barcode skan**
+- ✅ Mix box **2+ model / barcode oqimi**
 - ✅ Yangi UI, mobile-friendly
 - ✅ Security hardening (scrypt, rate limit, CSP, HSTS, va h.k.)
 
@@ -143,7 +167,7 @@ packed (qadoqlandi) → warehouse (omborda) → shipping (shipmentda) → shippe
 - Web Service → Environment → DATABASE_URL qo'shing
 
 **CORS xato?**
-- `ALLOWED_ORIGINS` env'da to'g'ri domain bormi?
+- `ALLOWED_ORIGIN` env'da to'g'ri domain bormi?
 
 ## 📞 Texnik
 

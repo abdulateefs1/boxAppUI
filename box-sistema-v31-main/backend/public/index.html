@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Box Sistema — Frontend</title>
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { max-width: 560px; background: #1e293b; border-radius: 12px; padding: 28px; border: 1px solid #334155; }
+    h1 { margin: 0 0 12px; font-size: 1.25rem; }
+    p { margin: 0 0 16px; line-height: 1.5; color: #94a3b8; font-size: 0.95rem; }
+    code { background: #0f172a; padding: 2px 8px; border-radius: 6px; font-size: 0.85rem; }
+    a { color: #34d399; }
+    ol { margin: 16px 0 0; padding-left: 22px; color: #94a3b8; line-height: 1.7; }
+    .api { margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155; font-size: 0.85rem; color: #64748b; }
+    .warn { background:#422006;color:#fcd34d;padding:12px 14px;border-radius:8px;font-size:0.9rem;margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Next.js frontend ishlamoqda</h1>
+    <p>
+      API bu serverda: port <code id="port">3000</code>. Loyiha tuzilishi: <code>backend/</code> (API) va <code>frontend/</code> (Next.js).
+    </p>
+    <ol>
+      <li><strong>Bir port (dev):</strong> <code>box-sistema-v31-main</code> ichida <code>npm install</code> keyin <code>npm run dev:stack</code> — <a href="http://localhost:3000">localhost:3000</a></li>
+      <li><strong>Ikki jarayon:</strong> <code>npm run dev:api</code> + <code>npm run dev:web</code> — UI: <a href="http://localhost:3001">localhost:3001</a></li>
+      <li><strong>Production:</strong> <code>npm run build</code> keyin <code>NODE_ENV=production node backend/server.js</code> — UI: <code>frontend/out</code></li>
+    </ol>
+    <div class="warn">
+      <strong>Render:</strong> Root Directory <code>box-sistema-v31-main</code>, Build:
+      <code>npm install --prefix backend &amp;&amp; npm run build --prefix backend</code>, Start:
+      <code>node backend/server.js</code>
+    </div>
+    <p class="api">Health: <a href="/health">/health</a></p>
+  </div>
+  <script>
+    (function(){ var p=(location.port||'80'); var el=document.getElementById('port'); if(el) el.textContent=p; })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "box-sistema-backend",
+  "version": "3.0.0",
+  "description": "AND BILLUR TEXTILE — Express API",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "build": "npm install --prefix ../frontend && cross-env STATIC_EXPORT=1 npm run build --prefix ../frontend"
+  },
+  "dependencies": {
+    "cross-env": "^7.0.3",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.5",
+    "pg": "^8.11.5"
+  },
+  "license": "UNLICENSED",
+  "private": true
+}
