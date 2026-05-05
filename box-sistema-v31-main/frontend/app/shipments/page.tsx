@@ -13,6 +13,7 @@ import {
   Loader2,
   Download,
   FileSpreadsheet,
+  ScanBarcode,
 } from "lucide-react"
 import { AppHeader } from "@/components/layout/app-header"
 import { Card, CardContent } from "@/components/ui/card"
@@ -20,11 +21,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import type { Box, Shipment } from "@/lib/types"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
-import { aggregateShipmentSnapshot, formatNumber, totalPiecesOfBox } from "@/lib/utils"
+import { aggregateShipmentSnapshot, formatNumber, formatSizesText, modelLineForBox, totalPiecesOfBox } from "@/lib/utils"
 import { toast } from "sonner"
 
 function matchesShipmentSearch(b: Box, q: string): boolean {
@@ -75,6 +77,10 @@ export default function ShipmentsPage() {
   const [closeConfirm, setCloseConfirm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; status: "open" | "closed" } | null>(null)
   const [exportingShipmentId, setExportingShipmentId] = useState<string | null>(null)
+  const [scanCode, setScanCode] = useState("")
+  const [scanLoading, setScanLoading] = useState(false)
+  const [scannedBox, setScannedBox] = useState<Box | null>(null)
+  const [scanPreviewOpen, setScanPreviewOpen] = useState(false)
 
   const load = useCallback(async () => {
     try {
@@ -154,6 +160,58 @@ export default function ShipmentsPage() {
     } catch (e: any) {
       toast.error(e?.message || "Xatolik")
     }
+  }
+
+  const findBoxByScanCode = useCallback(
+    (rawCode: string): Box | null => {
+      const code = rawCode.trim().toLowerCase()
+      if (!code) return null
+      const normalized = code.replace(/\s+/g, "")
+      const splitBySlash = normalized.split("/")
+      if (splitBySlash.length === 2) {
+        const [zakaz, boxId] = splitBySlash
+        const byPair = warehouseBoxes.find(
+          (b) =>
+            String(b.zakaz || "").trim().toLowerCase() === zakaz &&
+            String(b.id || "").trim().toLowerCase() === boxId
+        )
+        if (byPair) return byPair
+      }
+      return (
+        warehouseBoxes.find((b) => String(b.uid || "").trim().toLowerCase() === code) ||
+        warehouseBoxes.find((b) => String(b.warehouseCode || "").trim().toLowerCase() === code) ||
+        warehouseBoxes.find((b) => `${String(b.zakaz || "").trim()}/${String(b.id || "").trim()}`.toLowerCase() === code) ||
+        null
+      )
+    },
+    [warehouseBoxes]
+  )
+
+  const handleScanSearch = async () => {
+    const code = scanCode.trim()
+    if (!code) return
+    setScanLoading(true)
+    try {
+      const found = findBoxByScanCode(code)
+      if (!found) {
+        toast.error("Box topilmadi", {
+          description: `"${code}" bo'yicha omborda box topilmadi. Scan ID, UID yoki Zakaz/Box formatini tekshiring.`,
+        })
+        return
+      }
+      setScannedBox(found)
+      setScanPreviewOpen(true)
+    } finally {
+      setScanLoading(false)
+    }
+  }
+
+  const handleAddScannedBox = async () => {
+    if (!scannedBox) return
+    await toggleBox(scannedBox.uid, "add")
+    setScanPreviewOpen(false)
+    setScannedBox(null)
+    setScanCode("")
   }
 
   const confirmCloseShipment = async () => {
@@ -254,6 +312,90 @@ export default function ShipmentsPage() {
         }
         onConfirm={confirmDeleteShipment}
       />
+
+      <Dialog
+        open={scanPreviewOpen}
+        onOpenChange={(nextOpen) => {
+          setScanPreviewOpen(nextOpen)
+          if (!nextOpen) setScannedBox(null)
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Box ma&apos;lumotlari</DialogTitle>
+          </DialogHeader>
+
+          {!scannedBox ? (
+            <p className="text-sm text-muted-foreground">Box tanlanmagan</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-xl border bg-muted/20 p-3">
+                <div className="flex items-center gap-2 text-lg font-bold text-foreground">
+                  <span>
+                    {scannedBox.zakaz}/{scannedBox.id}
+                  </span>
+                  {scannedBox.type === "mix" && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      MIX
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-1 text-sm text-muted-foreground">{modelLineForBox(scannedBox)}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Og&apos;irlik</div>
+                  <div className="mt-0.5 font-semibold">{scannedBox.kg} kg</div>
+                </div>
+                <div className="rounded-lg border p-3">
+                  <div className="text-xs text-muted-foreground">Jami dona</div>
+                  <div className="mt-0.5 font-semibold">{formatNumber(totalPiecesOfBox(scannedBox))}</div>
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3 text-sm">
+                <div className="font-medium">Razmerlar</div>
+                {scannedBox.type === "mix" ? (
+                  (scannedBox.items || []).length ? (
+                    <div className="space-y-1.5">
+                      {(scannedBox.items || []).map((it, idx) => (
+                        <div key={`${it.model}-${it.color}-${idx}`}>
+                          <div className="font-medium">
+                            {it.model} / {it.color}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{formatSizesText(it.sizes) || "—"}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground">Ma&apos;lumot yo&apos;q</div>
+                  )
+                ) : (
+                  <div className="text-muted-foreground">{formatSizesText(scannedBox.sizes) || "—"}</div>
+                )}
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setScanPreviewOpen(false)
+                    setScannedBox(null)
+                  }}
+                >
+                  Bekor
+                </Button>
+                <Button type="button" className="flex-1" onClick={() => void handleAddScannedBox()}>
+                  Shipmentga qo&apos;shish
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <main className="flex-1 overflow-auto">
         <div className="mx-auto max-w-6xl space-y-4 p-4 md:p-6">
@@ -383,6 +525,31 @@ export default function ShipmentsPage() {
                       </div>
                       <span className="font-semibold">Ombordagi boxlar</span>
                       <Badge variant="secondary">{warehouseBoxes.length}</Badge>
+                    </div>
+                    <div className="mb-3 rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
+                      <Label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Scan orqali qo&apos;shish
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Scan ID (00541616), UID yoki Zakaz/Box"
+                          className="h-9 font-mono"
+                          value={scanCode}
+                          onChange={(e) => setScanCode(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void handleScanSearch()
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          className="h-9 shrink-0 gap-1.5"
+                          disabled={!scanCode.trim() || scanLoading}
+                          onClick={() => void handleScanSearch()}
+                        >
+                          {scanLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanBarcode className="h-4 w-4" />}
+                          Topish
+                        </Button>
+                      </div>
                     </div>
                     <div className="relative mb-3">
                       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

@@ -50,6 +50,7 @@ export function MixBoxModal({
   const [boxNumber, setBoxNumber] = useState("")
   const [zakaz, setZakaz] = useState("")
   const [ogirlik, setOgirlik] = useState("")
+  const [warehouseCode, setWarehouseCode] = useState("")
   const [sizesPerOrder, setSizesPerOrder] = useState<SizeQuantities[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -63,6 +64,7 @@ export function MixBoxModal({
       setBoxNumber("")
       setZakaz("")
       setOgirlik("")
+      setWarehouseCode("")
       setSizesPerOrder([])
     }
   }, [open, initialOrder])
@@ -140,12 +142,21 @@ export function MixBoxModal({
         color: ord.color,
         sizes: sizesPerOrder[idx] || {},
       }))
-      await api.createMixBox({
+      const created = await api.createMixBox({
         id: boxNumber.trim(),
         zakaz: zakaz.trim(),
         kg,
         items,
       })
+      if (warehouseCode.trim()) {
+        await api.updateBox({
+          uid: created.uid,
+          zakaz: zakaz.trim(),
+          kg,
+          items,
+          warehouseCode: warehouseCode.trim(),
+        })
+      }
       toast.success("Mix box yaratildi")
       onSave()
     } catch (e: any) {
@@ -161,6 +172,7 @@ export function MixBoxModal({
     setBoxNumber("")
     setZakaz("")
     setOgirlik("")
+    setWarehouseCode("")
     setSizesPerOrder([])
     setStep("scan-more")
     onCancel()
@@ -355,6 +367,22 @@ export function MixBoxModal({
                   />
                 </div>
               ))}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="warehouseCode" className="text-xs font-medium text-muted-foreground">
+                Scan ID (masalan: 00541616)
+              </Label>
+              <div className="relative">
+                <ScanBarcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="warehouseCode"
+                  value={warehouseCode}
+                  onChange={(e) => setWarehouseCode(e.target.value.toUpperCase())}
+                  placeholder="Skan qilingan box ID"
+                  className="h-12 pl-10 font-mono"
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 pt-2">

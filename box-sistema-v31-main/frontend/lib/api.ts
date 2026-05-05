@@ -195,6 +195,12 @@ export const api = {
     kg?: number
     sizes?: SizeQuantities
     items?: MixItem[]
+    specification?: string
+    cartonSize?: string
+    multipack?: string
+    warehouseCode?: string
+    grossWeight?: number
+    tareWeight?: number
   }): Promise<Box> {
     return request("PUT", "/api/boxes/_", data)
   },

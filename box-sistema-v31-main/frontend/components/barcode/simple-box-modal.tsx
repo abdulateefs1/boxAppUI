@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SizeGrid } from "@/components/shared/size-grid"
-import { Check, Loader2, Package, Scale } from "lucide-react"
+import { Check, Loader2, Package, Scale, ScanBarcode } from "lucide-react"
 import type { Order, SizeQuantities } from "@/lib/types"
 import { api } from "@/lib/api"
 import { formatNumber } from "@/lib/utils"
@@ -25,6 +25,7 @@ export function SimpleBoxModal({ open, onOpenChange, order, onSave, onCancel }: 
   const [zakaz, setZakaz] = useState("")
   const [ogirlik, setOgirlik] = useState("")
   const [sizes, setSizes] = useState<SizeQuantities>({})
+  const [warehouseCode, setWarehouseCode] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export function SimpleBoxModal({ open, onOpenChange, order, onSave, onCancel }: 
       setZakaz("")
       setOgirlik("")
       setSizes({})
+      setWarehouseCode("")
     }
   }, [open])
 
@@ -56,7 +58,7 @@ export function SimpleBoxModal({ open, onOpenChange, order, onSave, onCancel }: 
     }
     setSubmitting(true)
     try {
-      await api.createSimpleBox({
+      const created = await api.createSimpleBox({
         id: boxNumber.trim(),
         zakaz: zakaz.trim(),
         kg,
@@ -64,6 +66,15 @@ export function SimpleBoxModal({ open, onOpenChange, order, onSave, onCancel }: 
         color: order.color,
         sizes,
       })
+      if (warehouseCode.trim()) {
+        await api.updateBox({
+          uid: created.uid,
+          zakaz: zakaz.trim(),
+          kg,
+          sizes,
+          warehouseCode: warehouseCode.trim(),
+        })
+      }
       toast.success("Box yaratildi")
       onSave()
     } catch (e: any) {
@@ -160,6 +171,22 @@ export function SimpleBoxModal({ open, onOpenChange, order, onSave, onCancel }: 
               </span>
             </div>
             <SizeGrid values={sizes} onChange={setSizes} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="warehouseCode" className="text-xs font-medium text-muted-foreground">
+              Scan ID (masalan: 00541616)
+            </Label>
+            <div className="relative">
+              <ScanBarcode className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="warehouseCode"
+                value={warehouseCode}
+                onChange={(e) => setWarehouseCode(e.target.value.toUpperCase())}
+                placeholder="Skan qilingan box ID"
+                className="h-12 pl-10 font-mono"
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">
