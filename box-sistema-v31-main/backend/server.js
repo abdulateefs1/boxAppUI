@@ -5,6 +5,11 @@ const path = require('path');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 const { pool, initDB, hashPassword, verifyPassword, isLegacyHash } = require('./db');
+const {
+  flattenBoxesToCartonLines,
+  groupCartonLinesByModelColor,
+  buildDetailedList2Buffer,
+} = require('./detailedList2Export');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -372,6 +377,12 @@ function rowToBox(r) {
     uid: r.uid, id: r.box_num, zakaz: r.zakaz, type: r.type,
     kg: parseFloat(r.kg) || 0, status: r.status,
     model: r.model, color: r.color, sizes: r.sizes, items: r.items,
+    specification: r.specification ?? '',
+    cartonSize: r.carton_size ?? null,
+    multipack: r.multipack ?? null,
+    grossWeight: r.gross_weight != null ? parseFloat(r.gross_weight) : null,
+    tareWeight: r.tare_weight != null ? parseFloat(r.tare_weight) : null,
+    warehouseCode: r.warehouse_code ?? null,
     createdBy: r.created_by, createdByName: r.created_by_name,
     createdAt: r.created_at, createdDate: r.created_date,
     updatedAt: r.updated_at, statusHistory: r.status_history || []
@@ -500,9 +511,43 @@ app.put('/api/boxes/:id', requireRole('admin', 'storekeeper'), async (req, res) 
       items = cleanedItems;
     }
 
+    const vals = [
+      zakaz,
+      kg,
+      sizes ? JSON.stringify(sizes) : null,
+      items ? JSON.stringify(items) : null,
+    ];
+    const parts = ['zakaz=$1', 'kg=$2', 'sizes=$3', 'items=$4'];
+    let next = vals.length + 1;
+    if (req.body?.specification !== undefined && req.body.specification !== null) {
+      parts.push(`specification=$${next++}`);
+      vals.push(sanitizeStr(req.body.specification, 500) || null);
+    }
+    if (req.body?.cartonSize !== undefined && req.body.cartonSize !== null) {
+      parts.push(`carton_size=$${next++}`);
+      vals.push(sanitizeStr(req.body.cartonSize, 80) || null);
+    }
+    if (req.body?.multipack !== undefined && req.body.multipack !== null) {
+      parts.push(`multipack=$${next++}`);
+      vals.push(sanitizeStr(req.body.multipack, 40) || null);
+    }
+    if (req.body?.warehouseCode !== undefined && req.body.warehouseCode !== null) {
+      parts.push(`warehouse_code=$${next++}`);
+      vals.push(sanitizeStr(req.body.warehouseCode, 80) || null);
+    }
+    if (req.body?.grossWeight !== undefined && req.body.grossWeight !== null && req.body.grossWeight !== '') {
+      parts.push(`gross_weight=$${next++}`);
+      vals.push(Number(req.body.grossWeight));
+    }
+    if (req.body?.tareWeight !== undefined && req.body.tareWeight !== null && req.body.tareWeight !== '') {
+      parts.push(`tare_weight=$${next++}`);
+      vals.push(Number(req.body.tareWeight));
+    }
+    parts.push('updated_at=NOW()');
+    vals.push(uid);
     await pool.query(
-      `UPDATE boxes SET zakaz=$1, kg=$2, sizes=$3, items=$4, updated_at=NOW() WHERE uid=$5`,
-      [zakaz, kg, sizes ? JSON.stringify(sizes) : null, items ? JSON.stringify(items) : null, uid]
+      `UPDATE boxes SET ${parts.join(', ')} WHERE uid=$${vals.length}`,
+      vals
     );
     await appendAudit('BOX_UPDATED', req.user, { uid, id: box.box_num, zakaz }, getClientIP(req));
     const { rows } = await pool.query(`SELECT * FROM boxes WHERE uid = $1`, [uid]);
@@ -909,6 +954,160 @@ app.get('/api/detalniy/excel', requireAuth, async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="Detalniy_' + date + '.xlsx"');
     res.send(Buffer.from(buf));
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Умумий "Лист2" детал экспорт (warehouse + shipment режимлари)
+function parseDetailedWarehouseStatusParam(raw) {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return ['warehouse'];
+  const s = String(raw).trim().toLowerCase();
+  if (s === 'all') return null;
+  const list = s.split(',').map((x) => x.trim()).filter(Boolean);
+  const allowed = new Set(['packed', 'warehouse', 'shipping', 'shipped']);
+  const filtered = list.filter((x) => allowed.has(x));
+  return filtered.length ? filtered : ['warehouse'];
+}
+
+async function fetchBoxesForWarehouseDetailedExport(req) {
+  const model = sanitizeStr(req.query.model, 100);
+  const color = sanitizeStr(req.query.color, 100);
+  const specification = sanitizeStr(req.query.specification, 300);
+  const warehouseId = sanitizeStr(req.query.warehouseId, 100);
+  const orderNumbersRaw = sanitizeStr(req.query.orderNumbers, 2000);
+  const dateFrom = sanitizeStr(req.query.dateFrom, 20);
+  const dateTo = sanitizeStr(req.query.dateTo, 20);
+
+  let q = 'SELECT * FROM boxes WHERE 1=1';
+  const params = [];
+
+  const statuses = parseDetailedWarehouseStatusParam(req.query.status);
+  if (statuses) {
+    params.push(statuses);
+    q += ` AND status = ANY($${params.length}::text[])`;
+  }
+
+  if (orderNumbersRaw) {
+    const orders = orderNumbersRaw.split(/[\s,]+/).map((o) => sanitizeStr(o, 50)).filter(Boolean);
+    if (orders.length) {
+      params.push(orders);
+      q += ` AND zakaz = ANY($${params.length}::text[])`;
+    }
+  }
+
+  if (specification) {
+    params.push('%' + specification + '%');
+    q += ` AND COALESCE(specification,'') ILIKE $${params.length}`;
+  }
+
+  if (warehouseId) {
+    params.push(warehouseId);
+    q += ` AND warehouse_code = $${params.length}`;
+  }
+
+  if (dateFrom) {
+    params.push(dateFrom);
+    q += ` AND created_at::date >= $${params.length}::date`;
+  }
+  if (dateTo) {
+    params.push(dateTo);
+    q += ` AND created_at::date <= $${params.length}::date`;
+  }
+
+  if (model) {
+    params.push('%' + model + '%');
+    const i = params.length;
+    q += ` AND (
+      (type = 'simple' AND COALESCE(model,'') ILIKE $${i}) OR
+      (type = 'mix' AND COALESCE(items::text,'') ILIKE $${i})
+    )`;
+  }
+
+  if (color) {
+    params.push('%' + color + '%');
+    const i = params.length;
+    q += ` AND (
+      (type = 'simple' AND COALESCE(color,'') ILIKE $${i}) OR
+      (type = 'mix' AND COALESCE(items::text,'') ILIKE $${i})
+    )`;
+  }
+
+  q += ' ORDER BY zakaz ASC NULLS LAST, box_num ASC NULLS LAST LIMIT 10000';
+  const { rows } = await pool.query(q, params);
+  return rows;
+}
+
+function snapshotBoxesToExportRows(snapshot) {
+  if (!Array.isArray(snapshot)) return [];
+  return snapshot.map((b) => ({
+    uid: b.uid || b.id,
+    box_num: b.id || b.box_num,
+    zakaz: b.zakaz,
+    type: b.type || 'simple',
+    kg: b.kg,
+    model: b.model,
+    color: b.color,
+    sizes: b.sizes,
+    items: b.items,
+    specification: b.specification,
+    carton_size: b.carton_size || b.cartonSize,
+    multipack: b.multipack,
+    gross_weight: b.gross_weight ?? b.grossWeight,
+    tare_weight: b.tare_weight ?? b.tareWeight,
+  }));
+}
+
+app.get('/api/exports/warehouse-detailed.xlsx', requireAuth, async (req, res) => {
+  try {
+    const rows = await fetchBoxesForWarehouseDetailedExport(req);
+    const lines = flattenBoxesToCartonLines(rows);
+    const grouped = groupCartonLinesByModelColor(lines).filter((g) => g.lines.length > 0);
+    const buf = await buildDetailedList2Buffer(grouped);
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `warehouse-detailed-${date}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buf);
+  } catch (e) {
+    if (e.code === 'NO_DATA') {
+      return res.status(404).json({ error: 'Eksport qilish uchun qatorlar topilmadi (razmerlar bilan boxlar bo\'lsin).' });
+    }
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/shipments/:shipmentId/export-detailed.xlsx', requireAuth, async (req, res) => {
+  try {
+    const id = sanitizeStr(req.params.shipmentId, 50);
+    const { rows } = await pool.query('SELECT * FROM shipments WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Shipment topilmadi' });
+    const shipment = rows[0];
+    let exportRows = [];
+    if (shipment.status === 'open') {
+      const uids = Array.isArray(shipment.box_uids) ? shipment.box_uids : [];
+      if (!uids.length) {
+        return res.status(400).json({ error: 'No boxes in this shipment' });
+      }
+      const br = await pool.query('SELECT * FROM boxes WHERE uid = ANY($1::text[])', [uids]);
+      exportRows = br.rows;
+    } else {
+      exportRows = snapshotBoxesToExportRows(shipment.snapshot);
+      if (!exportRows.length) {
+        return res.status(400).json({ error: 'No boxes in this shipment' });
+      }
+    }
+    const lines = flattenBoxesToCartonLines(exportRows);
+    const grouped = groupCartonLinesByModelColor(lines).filter((g) => g.lines.length > 0);
+    const buf = await buildDetailedList2Buffer(grouped);
+    const safe = String(id).replace(/[^\w.-]+/g, '_');
+    const filename = `shipment-${safe}-detailed.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buf);
+  } catch (e) {
+    if (e.code === 'NO_DATA') {
+      return res.status(400).json({ error: 'No boxes in this shipment' });
+    }
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ============== USERS ==============

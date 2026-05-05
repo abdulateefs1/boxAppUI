@@ -1,7 +1,19 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Truck, Plus, Check, Trash2, Search, Package, ChevronDown, ChevronRight, Loader2 } from "lucide-react"
+import {
+  Truck,
+  Plus,
+  Check,
+  Trash2,
+  Search,
+  Package,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  Download,
+  FileSpreadsheet,
+} from "lucide-react"
 import { AppHeader } from "@/components/layout/app-header"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -62,6 +74,7 @@ export default function ShipmentsPage() {
   const [expandedHistId, setExpandedHistId] = useState<string | null>(null)
   const [closeConfirm, setCloseConfirm] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; status: "open" | "closed" } | null>(null)
+  const [exportingShipmentId, setExportingShipmentId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try {
@@ -150,6 +163,18 @@ export default function ShipmentsPage() {
       await load()
     } catch (e: any) {
       toast.error(e?.message || "Xatolik")
+    }
+  }
+
+  const handleShipmentDetailedExport = async (shipmentId: string) => {
+    setExportingShipmentId(shipmentId)
+    try {
+      await api.downloadShipmentDetailedExcel(shipmentId)
+      toast.success("Shipment Detailed Excel yuklandi")
+    } catch (e: any) {
+      toast.error(e?.message || "Yuklab bo'lmadi")
+    } finally {
+      setExportingShipmentId(null)
     }
   }
 
@@ -288,6 +313,20 @@ export default function ShipmentsPage() {
                       <span className="font-medium">{openShipmentTotalKg.toFixed(1)} kg</span>
                     </div>
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 border-teal-200"
+                    disabled={!inShipmentBoxes.length || exportingShipmentId === open.id}
+                    onClick={() => open && void handleShipmentDetailedExport(open.id)}
+                  >
+                    {open && exportingShipmentId === open.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <FileSpreadsheet className="h-4 w-4" />
+                    )}
+                    Export Shipment Excel
+                  </Button>
                   <Button className="w-full gap-2 bg-teal-600 hover:bg-teal-700" onClick={() => setCloseConfirm(true)}>
                     <Check className="h-4 w-4" />
                     Shipmentni yopish
@@ -429,6 +468,21 @@ export default function ShipmentsPage() {
                           )}
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1"
+                            disabled={exportingShipmentId === s.id || !snap.length}
+                            onClick={() => void handleShipmentDetailedExport(s.id)}
+                            title="Лист2 tarzida eksport"
+                          >
+                            {exportingShipmentId === s.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            Excel
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"

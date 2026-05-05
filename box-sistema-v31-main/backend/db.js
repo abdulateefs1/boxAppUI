@@ -128,6 +128,25 @@ async function initDB() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_boxes_created_date ON boxes(created_date);`);
 
     await client.query(`
+      ALTER TABLE boxes ADD COLUMN IF NOT EXISTS specification TEXT;
+    `);
+    await client.query(`
+      ALTER TABLE boxes ADD COLUMN IF NOT EXISTS carton_size TEXT;
+    `);
+    await client.query(`
+      ALTER TABLE boxes ADD COLUMN IF NOT EXISTS multipack TEXT;
+    `);
+    await client.query(`
+      ALTER TABLE boxes ADD COLUMN IF NOT EXISTS gross_weight NUMERIC(10, 3);
+    `);
+    await client.query(`
+      ALTER TABLE boxes ADD COLUMN IF NOT EXISTS tare_weight NUMERIC(10, 3);
+    `);
+    await client.query(`
+      ALTER TABLE boxes ADD COLUMN IF NOT EXISTS warehouse_code TEXT;
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS shipments (
         id              TEXT PRIMARY KEY,
         truck_info      TEXT,

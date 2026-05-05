@@ -33,6 +33,12 @@ export interface Box {
   color?: string | null
   sizes?: SizeQuantities | null
   items?: MixItem[] | null
+  specification?: string | null
+  cartonSize?: string | null
+  multipack?: string | null
+  grossWeight?: number | null
+  tareWeight?: number | null
+  warehouseCode?: string | null
   createdBy?: string
   createdByName?: string
   createdAt?: string

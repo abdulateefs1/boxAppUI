@@ -10,6 +10,7 @@ import {
   Filter,
   X,
   Loader2,
+  Download,
 } from "lucide-react"
 import { AppHeader } from "@/components/layout/app-header"
 import { Card, CardContent } from "@/components/ui/card"
@@ -38,6 +39,9 @@ export default function BoxesPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
   const [selectedZakaz, setSelectedZakaz] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [exportModelExcel, setExportModelExcel] = useState("")
+  const [exportColorExcel, setExportColorExcel] = useState("")
+  const [warehouseExportLoading, setWarehouseExportLoading] = useState(false)
   const [editing, setEditing] = useState<Box | null>(null)
   const [deleting, setDeleting] = useState<Box | null>(null)
 
@@ -110,6 +114,23 @@ export default function BoxesPage() {
       reload()
     } catch (e: any) {
       toast.error(e?.message || "Status o'zgartirilmadi")
+    }
+  }
+
+  const handleWarehouseDetailedExport = async () => {
+    setWarehouseExportLoading(true)
+    try {
+      await api.downloadWarehouseDetailedExcel({
+        status: selectedStatus === "all" ? "all" : selectedStatus,
+        orderNumbers: selectedZakaz.trim() || undefined,
+        model: exportModelExcel.trim() || undefined,
+        color: exportColorExcel.trim() || undefined,
+      })
+      toast.success("Detailed Excel yuklandi (Лист2)")
+    } catch (e: any) {
+      toast.error(e?.message || "Yuklab bo'lmadi")
+    } finally {
+      setWarehouseExportLoading(false)
     }
   }
 
@@ -191,6 +212,7 @@ export default function BoxesPage() {
                     {zakazChips.slice(0, 30).map(([z, item]) => (
                       <button
                         key={z}
+                        type="button"
                         onClick={() => setSelectedZakaz(selectedZakaz === z ? "" : z)}
                         className={cn(
                           "rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200",
@@ -204,6 +226,46 @@ export default function BoxesPage() {
                     ))}
                   </div>
                 )}
+
+                <div className="flex flex-col gap-2 border-t border-border/60 pt-3">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Detal eksport (Лист2 format)
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      placeholder="Model (Excel filtri)"
+                      className="h-9 max-w-[160px]"
+                      value={exportModelExcel}
+                      onChange={(e) => setExportModelExcel(e.target.value)}
+                      disabled={warehouseExportLoading}
+                    />
+                    <Input
+                      placeholder="Rang (Excel filtri)"
+                      className="h-9 max-w-[160px]"
+                      value={exportColorExcel}
+                      onChange={(e) => setExportColorExcel(e.target.value)}
+                      disabled={warehouseExportLoading}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-9 gap-1.5 bg-teal-600 hover:bg-teal-700"
+                      disabled={warehouseExportLoading}
+                      onClick={() => void handleWarehouseDetailedExport()}
+                    >
+                      {warehouseExportLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Download className="h-3.5 w-3.5" />
+                      )}
+                      Export Detailed Excel
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Yuqoridagi status va zakaz chip filtrlari eksportda ham qo‘llaniladi. Лист2: har bir model +
+                    rang alohida guruh.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

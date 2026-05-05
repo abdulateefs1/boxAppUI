@@ -46,6 +46,48 @@ export class ApiError extends Error {
   }
 }
 
+async function downloadAuthenticatedXlsx(apiPathWithQuery: string, fallbackFilename: string): Promise<void> {
+  const token = getToken()
+  const res = await fetch(`${API_BASE_URL}${apiPathWithQuery}`, {
+    headers: token ? { "x-session-token": token } : {},
+    credentials: "include",
+  })
+  let filename = fallbackFilename
+  const cd = res.headers.get("content-disposition")
+  if (cd) {
+    const star = cd.match(/filename\*=UTF-8''([^;]+)/i)
+    const plain = cd.match(/filename="([^"]+)"/i) || cd.match(/filename=([^;\s]+)/i)
+    if (star?.[1]) {
+      try {
+        filename = decodeURIComponent(star[1]).replace(/^"+|"+$/g, "")
+      } catch {
+        filename = fallbackFilename
+      }
+    } else if (plain?.[1]) {
+      filename = plain[1].replace(/^"+|"+$/g, "")
+    }
+  }
+  if (!res.ok) {
+    let msg = `HTTP ${res.status}`
+    try {
+      const j = await res.json()
+      if (j?.error) msg = typeof j.error === "string" ? j.error : msg
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(msg, res.status)
+  }
+  const blob = await res.blob()
+  const link = document.createElement("a")
+  const objUrl = URL.createObjectURL(blob)
+  link.href = objUrl
+  link.download = filename || fallbackFilename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(objUrl)
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
@@ -224,6 +266,44 @@ export const api = {
     link.click()
     link.remove()
     URL.revokeObjectURL(objUrl)
+  },
+
+  /** Лист2 layout — detailed warehouse export */
+  buildWarehouseDetailedExportPath(filters: {
+    status?: string
+    orderNumbers?: string
+    model?: string
+    color?: string
+    specification?: string
+    warehouseId?: string
+    dateFrom?: string
+    dateTo?: string
+  }) {
+    const p = new URLSearchParams()
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).trim() !== "") p.set(k, String(v))
+    })
+    const q = p.toString()
+    return `/api/exports/warehouse-detailed.xlsx${q ? `?${q}` : ""}`
+  },
+
+  async downloadWarehouseDetailedExcel(filters: {
+    status?: string
+    orderNumbers?: string
+    model?: string
+    color?: string
+    specification?: string
+    warehouseId?: string
+    dateFrom?: string
+    dateTo?: string
+  }): Promise<void> {
+    const path = api.buildWarehouseDetailedExportPath(filters)
+    return downloadAuthenticatedXlsx(path, `warehouse-detailed-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  },
+
+  async downloadShipmentDetailedExcel(shipmentId: string): Promise<void> {
+    const path = `/api/shipments/${encodeURIComponent(shipmentId)}/export-detailed.xlsx`
+    return downloadAuthenticatedXlsx(path, `shipment-${shipmentId}-detailed.xlsx`)
   },
 
   // ===== USERS =====
