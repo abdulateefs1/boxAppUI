@@ -12,6 +12,7 @@ import type {
   SizeQuantities,
   MixItem,
   UserRole,
+  AiChatResponse,
 } from "./types"
 
 const TOKEN_KEY = "ab_session_token"
@@ -310,6 +311,11 @@ export const api = {
   async downloadShipmentDetailedExcel(shipmentId: string): Promise<void> {
     const path = `/api/shipments/${encodeURIComponent(shipmentId)}/export-detailed.xlsx`
     return downloadAuthenticatedXlsx(path, `shipment-${shipmentId}-detailed.xlsx`)
+  },
+
+  // ===== AI CHAT =====
+  async aiChat(message: string): Promise<AiChatResponse> {
+    return request("POST", "/api/ai/chat", { message })
   },
 
   // ===== USERS =====

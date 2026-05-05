@@ -15,6 +15,7 @@ import {
   LogOut,
   Diamond,
   ChevronRight,
+  Sparkles,
 } from "lucide-react"
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const menuItems: MenuItem[] = [
   { title: "Boxlar", href: "/boxes", icon: Package },
   { title: "Detalniy", href: "/detalniy", icon: FileBarChart2, roles: ["admin", "storekeeper"] },
   { title: "Shipmentlar", href: "/shipments", icon: Truck, roles: ["admin", "storekeeper"] },
+  { title: "Chat", href: "/chat", icon: Sparkles, roles: ["admin", "storekeeper"] },
   { title: "Orderlar", href: "/orders", icon: ClipboardList, roles: ["admin"] },
   { title: "Foydalanuvchilar", href: "/users", icon: Users, roles: ["admin"] },
   { title: "Audit log", href: "/audit", icon: ScrollText, roles: ["admin"] },

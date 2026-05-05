@@ -183,6 +183,20 @@ async function initDB() {
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ai_chat_usage (
+        id          BIGSERIAL PRIMARY KEY,
+        user_id     TEXT,
+        username    TEXT,
+        role        TEXT,
+        intent      TEXT,
+        message     TEXT,
+        created_at  TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_ai_chat_usage_day ON ai_chat_usage(created_at DESC);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_ai_chat_usage_user ON ai_chat_usage(user_id, created_at DESC);`);
+
     await pool.query(`
   ALTER TABLE users
   ADD COLUMN IF NOT EXISTS must_change_pwd BOOLEAN DEFAULT FALSE

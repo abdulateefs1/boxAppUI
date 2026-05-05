@@ -10,6 +10,7 @@ const {
   groupCartonLinesByModelColor,
   buildDetailedList2Buffer,
 } = require('./detailedList2Export');
+const { processAiChat } = require('./ai/chatService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,6 +26,10 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const UNDO_WINDOW_MS = 2 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000; // 5 daqiqa
 const RATE_LIMIT_MAX = 5;                   // 5 ta xato urinish
+const AI_DAILY_LIMIT_BY_ROLE = {
+  admin: 200,
+  storekeeper: 50,
+};
 
 // Render proxy ortida — to'g'ri client IP olish uchun
 app.set('trust proxy', 1);
@@ -83,6 +88,44 @@ async function logLoginAttempt(ip, username, success) {
   );
   // Eski yozuvlarni tozalash
   await pool.query(`DELETE FROM login_attempts WHERE at < NOW() - INTERVAL '1 day'`);
+}
+
+async function getAiUsageCountToday(userId) {
+  const { rows } = await pool.query(
+    `SELECT COUNT(*)::int AS c
+     FROM ai_chat_usage
+     WHERE user_id = $1 AND created_at::date = CURRENT_DATE`,
+    [String(userId || "")]
+  )
+  return rows?.[0]?.c || 0
+}
+
+async function enforceAiDailyLimit(req, res, next) {
+  const user = await getSession(req)
+  if (!user) return res.status(401).json({ error: 'Tizimga kiring' })
+  if (!['admin', 'storekeeper'].includes(user.role)) return res.status(403).json({ error: 'Ruxsat yo\'q' })
+  const max = AI_DAILY_LIMIT_BY_ROLE[user.role] || 0
+  const used = await getAiUsageCountToday(user.id)
+  if (used >= max) {
+    return res.status(429).json({ error: `Kunlik AI limit tugagan (${used}/${max})` })
+  }
+  req.user = user
+  req.aiUsage = { used, max }
+  next()
+}
+
+async function logAiUsage(user, message, intent) {
+  await pool.query(
+    `INSERT INTO ai_chat_usage (user_id, username, role, intent, message)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [
+      String(user?.id || ''),
+      String(user?.username || ''),
+      String(user?.role || ''),
+      String(intent || ''),
+      String(message || '').slice(0, 2000),
+    ]
+  )
 }
 
 // ============== SESSIONS ==============
@@ -1107,6 +1150,42 @@ app.get('/api/shipments/:shipmentId/export-detailed.xlsx', requireAuth, async (r
       return res.status(400).json({ error: 'No boxes in this shipment' });
     }
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ============== AI CHAT ==============
+app.post('/api/ai/chat', enforceAiDailyLimit, async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY env topilmadi' });
+    }
+
+    const message = sanitizeStr(req.body?.message, 2000);
+    if (!message) return res.status(400).json({ error: 'message kerak' });
+
+    const result = await processAiChat({ pool, message });
+    await logAiUsage(req.user, message, result.intent);
+    await appendAudit(
+      'AI_CHAT_REQUEST',
+      req.user,
+      {
+        userId: req.user.id,
+        intent: result.intent,
+        message: message.slice(0, 500),
+      },
+      getClientIP(req)
+    );
+
+    res.json({
+      answer: result.answer,
+      data: result.data,
+      suggestions: result.suggestions,
+      intent: result.intent,
+      usage: req.aiUsage,
+    });
+  } catch (e) {
+    console.error('AI chat error:', e);
+    res.status(500).json({ error: 'AI hozir javob bera olmadi. Keyinroq urinib ko\'ring.' });
   }
 });
 

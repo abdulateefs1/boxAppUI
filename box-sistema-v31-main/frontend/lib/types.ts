@@ -101,6 +101,14 @@ export interface RankingEntry {
   total: number
 }
 
+export interface AiChatResponse {
+  answer: string
+  data?: Array<Record<string, unknown>>
+  suggestions?: string[]
+  intent?: string
+  usage?: { used: number; max: number }
+}
+
 export interface DetalniyGroup {
   model: string
   color: string
