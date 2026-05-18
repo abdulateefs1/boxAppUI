@@ -17,6 +17,7 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import type { Box, Order } from "@/lib/types"
 import { api } from "@/lib/api"
+import { ERP_READONLY_ORDERS } from "@/lib/config"
 import { calculateProgress, formatNumber, cn, orderProgressMap } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -115,10 +116,16 @@ export default function OrdersPage() {
         title="Orderlar"
         icon={<ClipboardList className="h-4 w-4" />}
         action={
-          <Button onClick={openCreate} size="sm" className="h-8 gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            Yangi order
-          </Button>
+          ERP_READONLY_ORDERS ? (
+            <span className="text-xs text-muted-foreground max-w-[200px] text-right">
+              ERP&apos;da yaratiladi — bu yerda faqat ko&apos;rish
+            </span>
+          ) : (
+            <Button onClick={openCreate} size="sm" className="h-8 gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              Yangi order
+            </Button>
+          )
         }
       />
 
@@ -277,6 +284,7 @@ export default function OrdersPage() {
                               </div>
                             </td>
                             <td className="whitespace-nowrap px-4 py-3.5 text-right">
+                              {!ERP_READONLY_ORDERS ? (
                               <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                                 <Button
                                   size="icon"
@@ -295,6 +303,9 @@ export default function OrdersPage() {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
                             </td>
                           </tr>
                         )

@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const API_TARGET = process.env.API_TARGET || "http://localhost:3000"
+const API_TARGET = process.env.API_TARGET || "http://localhost:3001"
 
 const staticExport =
   process.env.STATIC_EXPORT === "1" || process.env.STATIC_EXPORT === "true"

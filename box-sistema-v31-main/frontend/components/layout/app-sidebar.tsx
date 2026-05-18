@@ -30,6 +30,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/lib/auth-context"
+import { USE_ERP_API } from "@/lib/config"
 import { ROLE_LABEL, type UserRole } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -68,7 +69,10 @@ export function AppSidebar() {
   if (!user) return null
 
   const role = user.role
-  const visibleItems = menuItems.filter((m) => !m.roles || m.roles.includes(role))
+  const visibleItems = menuItems.filter((m) => {
+    if (USE_ERP_API && (m.href === "/chat" || m.href === "/users")) return false
+    return !m.roles || m.roles.includes(role)
+  })
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 bg-sidebar">

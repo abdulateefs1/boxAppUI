@@ -99,6 +99,36 @@ Agar **frontend** masalan `https://app.andbillur.com`, **API** esa `https://boxa
 - Parol: `admin123`
 - ⚠️ **DARHOL** Profil → Parolni o'zgartirish'dan parolni almashtiring!
 
+## 🔗 BILLUR ERP bilan integratsiya (Variant A)
+
+Desktop'dagi BoxUI frontend ERP backend'ga ulanadi — **zakazlar faqat ERP'da** yaratiladi.
+
+```bash
+# 1. ERP backend (panel/billur-erp-v2)
+cd panel/billur-erp-v2/backend
+npm run migrate   # 004 gacha
+npm run dev       # http://localhost:3001
+
+# 2. BoxUI frontend (Desktop/boxAppUI)
+cd box-sistema-v31-main/frontend
+cp .env.example .env.local
+npm install
+npm run dev       # http://localhost:3001 yoki 3000 — next.config rewrites → ERP :3001
+```
+
+`.env.local`:
+```
+NEXT_PUBLIC_API_SOURCE=erp
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+API_TARGET=http://localhost:3001
+```
+
+ERP `ALLOWED_ORIGINS` ga frontend manzilini qo'shing (masalan `http://localhost:3001`).
+
+Login: ERP foydalanuvchisi (`admin` / `boxing` roli). Barcode skan — zakaz kodi (`external_code`, masalan `LRTT-88`).
+
+---
+
 ## 💻 Lokal ishga tushirish
 
 Frontend — **Next.js** (`frontend/`); API — **Express** (`backend/server.js`). Odatda ikki yo‘l:

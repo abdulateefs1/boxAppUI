@@ -9,6 +9,7 @@ import { SizeGrid } from "@/components/shared/size-grid"
 import { Check, Loader2, Package, Scale, ScanBarcode } from "lucide-react"
 import type { Order, SizeQuantities } from "@/lib/types"
 import { api } from "@/lib/api"
+import { USE_ERP_API } from "@/lib/config"
 import { formatNumber } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -31,12 +32,12 @@ export function SimpleBoxModal({ open, onOpenChange, order, onSave, onCancel }: 
   useEffect(() => {
     if (open) {
       setBoxNumber("")
-      setZakaz("")
+      setZakaz(USE_ERP_API && order?.barcode ? order.barcode : "")
       setOgirlik("")
       setSizes({})
       setWarehouseCode("")
     }
-  }, [open])
+  }, [open, order])
 
   if (!order) return null
 
@@ -65,8 +66,9 @@ export function SimpleBoxModal({ open, onOpenChange, order, onSave, onCancel }: 
         model: order.model,
         color: order.color,
         sizes,
+        ...(warehouseCode.trim() ? { warehouseCode: warehouseCode.trim() } : {}),
       })
-      if (warehouseCode.trim()) {
+      if (warehouseCode.trim() && !USE_ERP_API) {
         await api.updateBox({
           uid: created.uid,
           zakaz: zakaz.trim(),
